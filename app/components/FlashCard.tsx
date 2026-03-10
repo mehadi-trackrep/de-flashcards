@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-react";
 import type { FullCard, Priority } from "../hooks/useFlashcardState";
 
 interface Props {
@@ -13,16 +13,34 @@ interface Props {
   index: number;
 }
 
-const PRIORITIES: { label: string; value: Priority; color: string; active: string }[] = [
-  { label: "Low",  value: "low",    color: "text-cyan-300/60 border-cyan-500/20 bg-cyan-500/5",   active: "text-cyan-300 border-cyan-500/40 bg-cyan-500/20 shadow-cyan-500/20 shadow-md scale-105" },
-  { label: "Mid",  value: "medium", color: "text-amber-300/60 border-amber-500/20 bg-amber-500/5", active: "text-amber-300 border-amber-500/40 bg-amber-500/20 shadow-amber-500/20 shadow-md scale-105" },
-  { label: "High", value: "high",   color: "text-rose-300/60 border-rose-500/20 bg-rose-500/5",   active: "text-rose-300 border-rose-500/40 bg-rose-500/20 shadow-rose-500/20 shadow-md scale-105" },
+const PRIORITIES: { label: string; value: Priority }[] = [
+  { label: "Low",  value: "low"    },
+  { label: "Mid",  value: "medium" },
+  { label: "High", value: "high"   },
 ];
 
-const PRIORITY_BADGE: Record<string, string> = {
-  low:    "bg-cyan-500/15 text-cyan-300 border border-cyan-500/25",
-  medium: "bg-amber-500/15 text-amber-300 border border-amber-500/25",
-  high:   "bg-rose-500/15 text-rose-300 border border-rose-500/25",
+const priorityStyle = (value: Priority, active: boolean) => {
+  const base = "text-xs px-3 py-1.5 rounded-xl border font-mono transition-all duration-200 select-none touch-manipulation";
+  if (!active) {
+    const idle: Record<string, string> = {
+      low:    "text-cyan-500/60 border-cyan-500/20 bg-cyan-500/5",
+      medium: "text-amber-500/60 border-amber-500/20 bg-amber-500/5",
+      high:   "text-rose-500/60 border-rose-500/20 bg-rose-500/5",
+    };
+    return `${base} ${idle[value!]}`;
+  }
+  const on: Record<string, string> = {
+    low:    "text-cyan-300 border-cyan-500/50 bg-cyan-500/20 shadow-sm shadow-cyan-500/20",
+    medium: "text-amber-300 border-amber-500/50 bg-amber-500/20 shadow-sm shadow-amber-500/20",
+    high:   "text-rose-300 border-rose-500/50 bg-rose-500/20 shadow-sm shadow-rose-500/20",
+  };
+  return `${base} ${on[value!]} scale-105`;
+};
+
+const PRIORITY_PILL: Record<string, string> = {
+  low:    "bg-cyan-500/15 text-cyan-400 border border-cyan-500/25",
+  medium: "bg-amber-500/15 text-amber-400 border border-amber-500/25",
+  high:   "bg-rose-500/15 text-rose-400 border border-rose-500/25",
 };
 
 export default function FlashCard({ card, onPriority, onDone, onEdit, onDelete, index }: Props) {
@@ -31,107 +49,132 @@ export default function FlashCard({ card, onPriority, onDone, onEdit, onDelete, 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.35, ease: "easeOut" }}
+      transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.3, ease: "easeOut" }}
       layout
     >
-      <div className={`relative rounded-2xl border transition-all duration-300 group ${
-        card.done
-          ? "border-emerald-500/25 bg-emerald-950/15"
-          : "border-white/8 bg-white/[0.02] hover:border-white/14 hover:bg-white/[0.04]"
-      }`}>
-
-        {/* Header row */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{card.emoji}</span>
-            <span className="text-xs font-mono text-white/25 tracking-widest uppercase">{card.topic}</span>
+      <div
+        className="rounded-2xl border transition-all duration-300"
+        style={{
+          background: card.done ? "var(--bg-done)" : "var(--bg-card)",
+          borderColor: card.done ? "var(--border-done)" : "var(--border)",
+        }}
+      >
+        {/* ── Top row ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-1 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">{card.emoji}</span>
+            <span className="text-[10px] font-mono tracking-widest uppercase truncate"
+              style={{ color: "var(--text-muted)" }}>
+              {card.topic}
+            </span>
             {!card.isDefault && (
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400/70 border border-violet-500/20">custom</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0"
+                style={{ background: "var(--badge-custom-bg)", color: "var(--badge-custom-text)", border: "1px solid var(--badge-custom-border)" }}>
+                custom
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Pills + actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {card.priority && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${PRIORITY_BADGE[card.priority]}`}>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${PRIORITY_PILL[card.priority]}`}>
                 {card.priority}
               </span>
             )}
             {card.done && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-mono">
-                done ✓
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                ✓
               </span>
             )}
-            {/* Edit / Delete — visible on hover */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={onEdit}
-                className="p-1.5 rounded-lg border border-white/8 bg-white/3 text-white/30 hover:text-white/70 hover:bg-white/8 transition-all">
-                <Pencil size={11} />
+            <button onClick={onEdit}
+              className="p-1.5 rounded-lg transition-all touch-manipulation"
+              style={{ color: "var(--text-muted)", background: "var(--input-bg)" }}>
+              <Pencil size={11} />
+            </button>
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)}
+                className="p-1.5 rounded-lg transition-all touch-manipulation"
+                style={{ color: "var(--text-muted)", background: "var(--input-bg)" }}>
+                <Trash2 size={11} />
               </button>
-              {!confirmDelete ? (
-                <button onClick={() => setConfirmDelete(true)}
-                  className="p-1.5 rounded-lg border border-white/8 bg-white/3 text-white/30 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/8 transition-all">
-                  <Trash2 size={11} />
-                </button>
-              ) : (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10">
-                  <span className="text-xs font-mono text-rose-400">Delete?</span>
-                  <button onClick={onDelete} className="text-xs font-mono text-rose-300 hover:text-rose-100 ml-1">Yes</button>
-                  <button onClick={() => setConfirmDelete(false)} className="text-xs font-mono text-white/30 hover:text-white/60">No</button>
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10">
+                <span className="text-[10px] font-mono text-rose-400">Del?</span>
+                <button onClick={onDelete} className="text-[10px] font-mono text-rose-300 font-bold">Y</button>
+                <button onClick={() => setConfirmDelete(false)} className="text-[10px] font-mono"
+                  style={{ color: "var(--text-muted)" }}>N</button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Flip area */}
-        <div className="cursor-pointer px-5 pb-4 pt-2" onClick={() => setFlipped(!flipped)} style={{ perspective: "1200px" }}>
-          <div style={{
-            transition: "transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1)",
-            transformStyle: "preserve-3d",
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-            position: "relative",
-            minHeight: "90px",
-          }}>
-            {/* Front */}
-            <div style={{ backfaceVisibility: "hidden" }} className="absolute inset-0 flex flex-col justify-center">
-              <p className="text-white/80 text-[15px] leading-relaxed" style={{ fontFamily: "'Lora', serif" }}>
+        {/* ── Flip card area ───────────────────────────────────── */}
+        <div
+          className="px-4 py-3 cursor-pointer select-none touch-manipulation"
+          onClick={() => setFlipped(!flipped)}
+          style={{ perspective: "1200px", minHeight: "100px" }}
+        >
+          <div
+            className={`card-flip-inner ${flipped ? "flipped" : ""}`}
+            style={{ minHeight: "88px" }}
+          >
+            {/* Front: question */}
+            <div className="card-face absolute inset-0 flex flex-col justify-center gap-2">
+              <p className="text-sm leading-relaxed" style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}>
                 {card.question}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-white/18 text-xs font-mono">
-                <ChevronDown size={11} className="animate-bounce" />
-                <span>tap to reveal</span>
+              <div className="flex items-center gap-1 text-[11px] font-mono"
+                style={{ color: "var(--text-faint)" }}>
+                <ChevronDown size={10} className="animate-bounce" />
+                tap to flip
               </div>
             </div>
-            {/* Back */}
-            <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} className="absolute inset-0 flex flex-col justify-center">
-              <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/35 to-transparent mb-3" />
-              <p className="text-emerald-100/75 text-sm leading-relaxed" style={{ fontFamily: "'Lora', serif" }}>
+
+            {/* Back: answer */}
+            <div className="card-face card-face-back absolute inset-0 flex flex-col justify-center gap-2">
+              <div className="h-px w-full" style={{ background: "linear-gradient(to right, transparent, rgba(16,185,129,0.35), transparent)" }} />
+              <p className="text-sm leading-relaxed" style={{ fontFamily: "var(--font-serif)", color: "var(--answer-text)" }}>
                 {card.answer}
               </p>
+              <div className="flex items-center gap-1 text-[11px] font-mono"
+                style={{ color: "var(--text-faint)" }}>
+                <RotateCcw size={10} />
+                tap to flip back
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action bar */}
-        <div className="flex items-center gap-2 px-5 pb-4 pt-1 border-t border-white/[0.04]">
-          <span className="text-xs text-white/20 font-mono mr-1">priority:</span>
+        {/* ── Action bar ──────────────────────────────────────── */}
+        <div className="px-4 pb-3.5 pt-1 border-t flex items-center gap-2 flex-wrap"
+          style={{ borderColor: "var(--divider)" }}>
+          <span className="text-[10px] font-mono mr-0.5" style={{ color: "var(--text-faint)" }}>priority:</span>
           {PRIORITIES.map((p) => (
-            <button key={p.value!}
+            <button
+              key={p.value!}
               onClick={() => onPriority(card.priority === p.value ? null : p.value)}
-              className={`text-xs px-3 py-1 rounded-lg border font-mono transition-all duration-200 ${card.priority === p.value ? p.active : p.color}`}
-            >{p.label}</button>
-          ))}
-          <div className="ml-auto">
-            <button onClick={() => onDone(!card.done)}
-              className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg border font-mono transition-all duration-200 ${
-                card.done
-                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/35 shadow-md shadow-emerald-500/15"
-                  : "bg-white/4 text-white/35 border-white/8 hover:bg-white/8 hover:text-white/55"
-              }`}>
-              <CheckCircle2 size={12} />Done
+              className={priorityStyle(p.value, card.priority === p.value)}
+            >
+              {p.label}
             </button>
-          </div>
+          ))}
+          <button
+            onClick={() => onDone(!card.done)}
+            className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border font-mono transition-all touch-manipulation"
+            style={card.done ? {
+              background: "rgba(16,185,129,0.18)", color: "rgb(52,211,153)",
+              borderColor: "rgba(16,185,129,0.35)",
+            } : {
+              background: "var(--input-bg)", color: "var(--text-secondary)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <CheckCircle2 size={12} />
+            Done
+          </button>
         </div>
       </div>
     </motion.div>
