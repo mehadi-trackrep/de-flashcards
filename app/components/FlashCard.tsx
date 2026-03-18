@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-react";
 import type { FullCard, Priority } from "../hooks/useFlashcardState";
@@ -46,6 +46,15 @@ const PRIORITY_PILL: Record<string, string> = {
 export default function FlashCard({ card, onPriority, onDone, onEdit, onDelete, index }: Props) {
   const [flipped, setFlipped] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [cardHeight, setCardHeight] = useState<number>(88);
+  const frontContentRef = useRef<HTMLDivElement>(null);
+  const backContentRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const frontH = frontContentRef.current?.offsetHeight ?? 88;
+    const backH = backContentRef.current?.offsetHeight ?? 88;
+    setCardHeight(flipped ? backH : frontH);
+  }, [flipped, card.question, card.answer]);
 
   return (
     <motion.div
@@ -115,34 +124,42 @@ export default function FlashCard({ card, onPriority, onDone, onEdit, onDelete, 
         <div
           className="px-4 py-3 cursor-pointer select-none touch-manipulation"
           onClick={() => setFlipped(!flipped)}
-          style={{ perspective: "1200px", minHeight: "100px" }}
+          style={{
+            perspective: "1200px",
+            height: cardHeight + 24, // +24 for py-3 padding
+            transition: "height 0.5s cubic-bezier(0.4, 0.2, 0.2, 1)",
+          }}
         >
           <div
             className={`card-flip-inner ${flipped ? "flipped" : ""}`}
-            style={{ minHeight: "88px" }}
+            style={{ height: cardHeight }}
           >
             {/* Front: question */}
-            <div className="card-face absolute inset-0 flex flex-col justify-center gap-2">
-              <p className="text-sm leading-relaxed" style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}>
-                {card.question}
-              </p>
-              <div className="flex items-center gap-1 text-[11px] font-mono"
-                style={{ color: "var(--text-faint)" }}>
-                <ChevronDown size={10} className="animate-bounce" />
-                tap to flip
+            <div className="card-face absolute inset-0 flex flex-col justify-center gap-2 overflow-hidden">
+              <div ref={frontContentRef} className="flex flex-col gap-2">
+                <p className="text-sm leading-relaxed" style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}>
+                  {card.question}
+                </p>
+                <div className="flex items-center gap-1 text-[11px] font-mono"
+                  style={{ color: "var(--text-faint)" }}>
+                  <ChevronDown size={10} className="animate-bounce" />
+                  tap to flip
+                </div>
               </div>
             </div>
 
             {/* Back: answer */}
-            <div className="card-face card-face-back absolute inset-0 flex flex-col justify-center gap-2">
-              <div className="h-px w-full" style={{ background: "linear-gradient(to right, transparent, rgba(16,185,129,0.35), transparent)" }} />
-              <p className="text-sm leading-relaxed" style={{ fontFamily: "var(--font-serif)", color: "var(--answer-text)" }}>
-                {card.answer}
-              </p>
-              <div className="flex items-center gap-1 text-[11px] font-mono"
-                style={{ color: "var(--text-faint)" }}>
-                <RotateCcw size={10} />
-                tap to flip back
+            <div className="card-face card-face-back absolute inset-0 flex flex-col justify-center gap-2 overflow-hidden">
+              <div ref={backContentRef} className="flex flex-col gap-2">
+                <div className="h-px w-full" style={{ background: "linear-gradient(to right, transparent, rgba(16,185,129,0.35), transparent)" }} />
+                <p className="text-sm leading-relaxed" style={{ fontFamily: "var(--font-serif)", color: "var(--answer-text)" }}>
+                  {card.answer}
+                </p>
+                <div className="flex items-center gap-1 text-[11px] font-mono"
+                  style={{ color: "var(--text-faint)" }}>
+                  <RotateCcw size={10} />
+                  tap to flip back
+                </div>
               </div>
             </div>
           </div>
